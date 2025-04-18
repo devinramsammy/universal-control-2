@@ -2,6 +2,7 @@ import asyncio
 import websockets
 import time
 import Quartz
+import os
 from dotenv import load_dotenv
 from Quartz.CoreGraphics import CGEventGetLocation, CGDisplayPixelsHigh
 
