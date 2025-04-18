@@ -19,15 +19,36 @@ def get_screen_width():
 
 async def main():
     screen_width = get_screen_width()
+    is_controlling_remote = False
     print(f"Connecting to {TARGET_WS}...")
-    async with websockets.connect(TARGET_WS) as ws:
-        print("Connected.")
-        while True:
-            x, y = get_mouse_position()
-            if x >= screen_width - 1:  # Right edge of screen
-                print(f"Sending click at {x}, {y}")
-                await ws.send(f"{x},{y}")
-                time.sleep(1.5)
-            time.sleep(0.01)
+    
+    while True:
+        try:
+            async with websockets.connect(TARGET_WS) as ws:
+                print("Connected.")
+                last_x, last_y = get_mouse_position()
+                
+                while True:
+                    x, y = get_mouse_position()
+                    
+                    if x >= screen_width - 1 and not is_controlling_remote:
+                        print("Transitioning to remote control")
+                        is_controlling_remote = True
+                        await ws.send(f"MOVE:0,{y}")
+                        time.sleep(0.1)  
+                    
+                    if is_controlling_remote:
+                        dx = x - last_x
+                        await ws.send(f"MOVEBY:{dx},{y}")
+                    
+                    last_x, last_y = x, y
+                    time.sleep(0.01)
+                    
+        except websockets.exceptions.ConnectionClosed:
+            print("Connection lost. Reconnecting in 5 seconds...")
+            time.sleep(5)
+        except Exception as e:
+            print(f"Error: {e}. Reconnecting in 5 seconds...")
+            time.sleep(5)
 
 asyncio.run(main())
